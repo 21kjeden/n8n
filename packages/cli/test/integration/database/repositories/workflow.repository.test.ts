@@ -3,7 +3,6 @@ import {
 	createWorkflowWithHistory,
 	createActiveWorkflow,
 	createManyActiveWorkflows,
-	createWorkflowWithActiveVersion,
 	createWorkflow,
 	testDb,
 	getWorkflowById,
@@ -58,11 +57,8 @@ describe('WorkflowRepository', () => {
 			// ARRANGE
 			//
 			const workflowRepository = Container.get(WorkflowRepository);
-			const oldVersionId = 'old-version-id';
+			const workflow = await createActiveWorkflow();
 			const newVersionId = 'new-version-id';
-
-			// Create workflow with an active version
-			const workflow = await createWorkflowWithActiveVersion(oldVersionId, {});
 			await createWorkflowHistoryItem(workflow.id, { versionId: newVersionId });
 
 			//
@@ -77,7 +73,7 @@ describe('WorkflowRepository', () => {
 
 			expect(updatedWorkflow?.activeVersionId).toBe(newVersionId);
 			expect(updatedWorkflow?.active).toBe(true);
-			expect(updatedWorkflow?.versionId).toBe(oldVersionId);
+			expect(updatedWorkflow?.versionId).toBe(workflow.versionId);
 		});
 	});
 

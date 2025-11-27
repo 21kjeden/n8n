@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { N8nOption, N8nSelect } from '@n8n/design-system';
+import { N8nOption, N8nSelect, N8nTooltip } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 import { type SupportedProtocolType } from '../../sso.store';
 import { useRBACStore } from '@/app/stores/rbac.store';
@@ -13,6 +13,15 @@ const value = defineModel<UserRoleProvisioningSetting>({ default: 'disabled' });
 
 const { authProtocol } = defineProps<{
 	authProtocol: SupportedProtocolType;
+	/**
+	 * Since the user role provisioning setting is not
+	 * stored individually for OIDC or SAML,
+	 * we disable the dropdown if Single Sign On is not enabled yet.
+	 * This way we prevent disabling user role provisioning accidentally,
+	 * because a user decides to change the value of this dropdown
+	 * in the form of the "other SSO protocol", while one is enabled.
+	 */
+	disabled: boolean;
 }>();
 
 const i18n = useI18n();
@@ -46,22 +55,33 @@ const userRoleProvisioningDescriptions: UserRoleProvisioningDescription[] = [
 </script>
 <template>
 	<div :class="$style.group">
-		<label>{{ i18n.baseText('settings.sso.settings.userRoleProvisioning.label') }}</label>
-		<N8nSelect
-			:model-value="value"
-			:disabled="!canManageUserProvisioning"
-			data-test-id="oidc-user-role-provisioning"
-			:class="$style.userRoleProvisioningSelect"
-			@update:model-value="handleUserRoleProvisioningChange"
-		>
-			<N8nOption
-				v-for="option in userRoleProvisioningDescriptions"
-				:key="option.value"
-				:label="option.label"
-				data-test-id="oidc-user-role-provisioning-option"
-				:value="option.value"
-			/>
-		</N8nSelect>
+		<label>{{
+			i18n.baseText('settings.sso.settings.userRoleProvisioning.label', {
+				interpolate: { protocol: authProtocol },
+			})
+		}}</label>
+		<N8nTooltip :placement="'top'" :disabled="!disabled">
+			<template #content>{{
+				i18n.baseText('settings.sso.settings.userRoleProvisioning.disabledTooltip', {
+					interpolate: { protocol: authProtocol.toUpperCase() },
+				})
+			}}</template>
+			<N8nSelect
+				:model-value="value"
+				:disabled="disabled || !canManageUserProvisioning"
+				data-test-id="oidc-user-role-provisioning"
+				:class="$style.userRoleProvisioningSelect"
+				@update:model-value="handleUserRoleProvisioningChange"
+			>
+				<N8nOption
+					v-for="option in userRoleProvisioningDescriptions"
+					:key="option.value"
+					:label="option.label"
+					data-test-id="oidc-user-role-provisioning-option"
+					:value="option.value"
+				/>
+			</N8nSelect>
+		</N8nTooltip>
 		<small
 			>{{ i18n.baseText('settings.sso.settings.userRoleProvisioning.help') }}
 			<a :href="`https://docs.n8n.io/user-management/${authProtocol}/setup/`" target="_blank">{{

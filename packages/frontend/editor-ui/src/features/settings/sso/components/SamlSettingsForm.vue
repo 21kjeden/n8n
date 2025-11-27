@@ -322,7 +322,11 @@ onMounted(async () => {
 				/>
 				<small>{{ i18n.baseText('settings.sso.settings.ips.xml.help') }}</small>
 			</div>
-			<UserRoleProvisioningDropdown v-model="userRoleProvisioning" auth-protocol="saml" />
+			<UserRoleProvisioningDropdown
+				v-model="userRoleProvisioning"
+				:disabled="!samlLoginEnabled"
+				auth-protocol="saml"
+			/>
 			<ConfirmProvisioningDialog
 				v-model="showUserRoleProvisioningDialog"
 				:new-provisioning-setting="userRoleProvisioning"

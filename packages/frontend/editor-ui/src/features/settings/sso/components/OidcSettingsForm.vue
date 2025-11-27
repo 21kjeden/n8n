@@ -249,7 +249,11 @@ onMounted(async () => {
 			</N8nSelect>
 			<small>The prompt parameter to use when authenticating with the OIDC provider</small>
 		</div>
-		<UserRoleProvisioningDropdown v-model="userRoleProvisioning" auth-protocol="oidc" />
+		<UserRoleProvisioningDropdown
+			v-model="userRoleProvisioning"
+			:disabled="!ssoStore.isOidcLoginEnabled"
+			auth-protocol="oidc"
+		/>
 		<ConfirmProvisioningDialog
 			v-model="showUserRoleProvisioningDialog"
 			:new-provisioning-setting="userRoleProvisioning"

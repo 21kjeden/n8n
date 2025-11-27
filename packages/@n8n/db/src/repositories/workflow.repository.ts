@@ -838,24 +838,15 @@ export class WorkflowRepository extends Repository<WorkflowEntity> {
 		}
 	}
 
+	async activateVersion(workflowId: string, versionId: string) {
+		return await this.update({ id: workflowId }, { active: true, activeVersionId: versionId });
+	}
+
 	async deactivateAll() {
 		return await this.update(
 			{ activeVersionId: Not(IsNull()) },
 			{ active: false, activeVersionId: null },
 		);
-	}
-
-	// We're planning to remove this command in V2, so for now set activeVersion to the current version
-	async activateAll() {
-		await this.manager
-			.createQueryBuilder()
-			.update(WorkflowEntity)
-			.set({
-				active: true,
-				activeVersionId: () => 'versionId',
-			})
-			.where('activeVersionId IS NULL')
-			.execute();
 	}
 
 	async findByActiveState(activeState: boolean) {

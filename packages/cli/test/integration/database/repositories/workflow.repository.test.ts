@@ -6,10 +6,13 @@ import {
 	createWorkflowWithActiveVersion,
 	createWorkflow,
 	testDb,
+	getWorkflowById,
 } from '@n8n/backend-test-utils';
 import { GlobalConfig } from '@n8n/config';
 import { WorkflowRepository, WorkflowDependencyRepository, WorkflowDependencies } from '@n8n/db';
 import { Container } from '@n8n/di';
+
+import { createWorkflowHistoryItem } from '@test-integration/db/workflow-history';
 
 import { createTestRun } from '../../shared/db/evaluation';
 
@@ -26,68 +29,55 @@ describe('WorkflowRepository', () => {
 		await testDb.terminate();
 	});
 
-	describe('activateAll', () => {
-		it('should activate all workflows', async () => {
+	describe('activateVersion', () => {
+		it('should activate a specific workflow version', async () => {
 			//
 			// ARRANGE
 			//
 			const workflowRepository = Container.get(WorkflowRepository);
-			const workflows = await Promise.all([
-				createWorkflowWithTriggerAndHistory(),
-				createWorkflowWithTriggerAndHistory(),
-			]);
-			expect(workflows[0].activeVersionId).toBeNull();
-			expect(workflows[1].activeVersionId).toBeNull();
+			const workflow = await createWorkflowWithTriggerAndHistory();
+			const targetVersionId = 'custom-version-123';
+			await createWorkflowHistoryItem(workflow.id, { versionId: targetVersionId });
 
 			//
 			// ACT
 			//
-			await workflowRepository.activateAll();
+			await workflowRepository.activateVersion(workflow.id, targetVersionId);
 
 			//
 			// ASSERT
 			//
-			const workflow1 = await workflowRepository.findOne({
-				where: { id: workflows[0].id },
-			});
-			const workflow2 = await workflowRepository.findOne({
-				where: { id: workflows[1].id },
-			});
+			const updatedWorkflow = await getWorkflowById(workflow.id);
 
-			expect(workflow1?.activeVersionId).toBe(workflows[0].versionId);
-			expect(workflow2?.activeVersionId).toBe(workflows[1].versionId);
+			expect(updatedWorkflow?.activeVersionId).toBe(targetVersionId);
+			expect(updatedWorkflow?.active).toBe(true);
 		});
 
-		it('should not change activeVersionId for already-active workflows', async () => {
+		it('should update activeVersionId when activating an already active workflow', async () => {
 			//
 			// ARRANGE
 			//
 			const workflowRepository = Container.get(WorkflowRepository);
-			const activeVersionId = 'old-active-version-id';
+			const oldVersionId = 'old-version-id';
+			const newVersionId = 'new-version-id';
 
-			// Create workflow with different active and current versions
-			const workflow = await createWorkflowWithActiveVersion(activeVersionId, {});
-			const currentVersionId = workflow.versionId;
-
-			expect(workflow.active).toBe(true);
-			expect(workflow.activeVersionId).toBe(activeVersionId);
-			expect(workflow.versionId).toBe(currentVersionId);
+			// Create workflow with an active version
+			const workflow = await createWorkflowWithActiveVersion(oldVersionId, {});
+			await createWorkflowHistoryItem(workflow.id, { versionId: newVersionId });
 
 			//
 			// ACT
 			//
-			await workflowRepository.activateAll();
+			await workflowRepository.activateVersion(workflow.id, newVersionId);
 
 			//
 			// ASSERT
 			//
-			// activeVersionId should remain unchanged
-			const after = await workflowRepository.findOne({
-				where: { id: workflow.id },
-			});
+			const updatedWorkflow = await getWorkflowById(workflow.id);
 
-			expect(after?.activeVersionId).toBe(activeVersionId); // Unchanged
-			expect(after?.versionId).toBe(currentVersionId);
+			expect(updatedWorkflow?.activeVersionId).toBe(newVersionId);
+			expect(updatedWorkflow?.active).toBe(true);
+			expect(updatedWorkflow?.versionId).toBe(oldVersionId);
 		});
 	});
 

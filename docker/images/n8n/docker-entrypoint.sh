@@ -1,15 +1,10 @@
-#!/bin/sh
-if [ -d /opt/custom-certificates ]; then
-  echo "Trusting custom certificates from /opt/custom-certificates."
-  export NODE_OPTIONS="--use-openssl-ca $NODE_OPTIONS"
-  export SSL_CERT_DIR=/opt/custom-certificates
-  c_rehash /opt/custom-certificates
-fi
+# 1. Stop your current n8n container
+docker stop n8n
 
-if [ "$#" -gt 0 ]; then
-  # Got started with arguments
-  exec n8n "$@"
-else
-  # Got started without arguments
-  exec n8n
-fi
+# 2. Install the missing nodes inside the container
+docker exec -it n8n npm install n8n-nodes-replicate n8n-nodes-elevenlabs
+
+# 3. Restart n8n
+docker restart n8n
+
+# 4. Wait 20 seconds → refresh your browser

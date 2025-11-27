@@ -1,15 +1,14 @@
-#!/bin/sh
-if [ -d /opt/custom-certificates ]; then
-  echo "Trusting custom certificates from /opt/custom-certificates."
-  export NODE_OPTIONS="--use-openssl-ca $NODE_OPTIONS"
-  export SSL_CERT_DIR=/opt/custom-certificates
-  c_rehash /opt/custom-certificates
-fi
+# 1. Stop your current container
+docker stop n8n
 
-if [ "$#" -gt 0 ]; then
-  # Got started with arguments
-  exec n8n "$@"
-else
-  # Got started without arguments
-  exec n8n
-fi
+# 2. Remove the old one
+docker rm n8n
+
+# 3. Run the OFFICIAL n8n image that has ALL community nodes pre-installed
+docker run -d \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  n8nio/n8n
+
+# 4. Wait 20 seconds → refresh your browser
